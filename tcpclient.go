@@ -32,6 +32,15 @@ type TCPClientHandler struct {
 	tcpTransporter
 }
 
+func NewTCPClientHandlerFrom(conn net.Conn) *TCPClientHandler {
+	h := &TCPClientHandler{}
+	h.conn = conn
+	h.Address = conn.RemoteAddr().String()
+	h.Timeout = tcpTimeout
+	h.IdleTimeout = tcpIdleTimeout
+	return h
+}
+
 // NewTCPClientHandler allocates a new TCPClientHandler.
 func NewTCPClientHandler(address string) *TCPClientHandler {
 	h := &TCPClientHandler{}
