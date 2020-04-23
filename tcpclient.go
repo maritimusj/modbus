@@ -97,19 +97,19 @@ func (mb *tcpPackager) Verify(aduRequest []byte, aduResponse []byte) (err error)
 	responseVal := binary.BigEndian.Uint16(aduResponse)
 	requestVal := binary.BigEndian.Uint16(aduRequest)
 	if responseVal != requestVal {
-		err = fmt.Errorf("modbus: response transaction id '%v' does not match request '%v'", responseVal, requestVal)
+		err = NewModbusProtocolError("modbus: response transaction id '%v' does not match request '%v'", responseVal, requestVal)
 		return
 	}
 	// Protocol id
 	responseVal = binary.BigEndian.Uint16(aduResponse[2:])
 	requestVal = binary.BigEndian.Uint16(aduRequest[2:])
 	if responseVal != requestVal {
-		err = fmt.Errorf("modbus: response protocol id '%v' does not match request '%v'", responseVal, requestVal)
+		err = NewModbusProtocolError("modbus: response protocol id '%v' does not match request '%v'", responseVal, requestVal)
 		return
 	}
 	// Unit id (1 byte)
 	if aduResponse[6] != aduRequest[6] {
-		err = fmt.Errorf("modbus: response unit id '%v' does not match request '%v'", aduResponse[6], aduRequest[6])
+		err = NewModbusProtocolError("modbus: response unit id '%v' does not match request '%v'", aduResponse[6], aduRequest[6])
 		return
 	}
 	return
@@ -125,7 +125,7 @@ func (mb *tcpPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
 	length := binary.BigEndian.Uint16(adu[4:])
 	pduLength := len(adu) - tcpHeaderSize
 	if pduLength <= 0 || pduLength != int(length-1) {
-		err = fmt.Errorf("modbus: length in response '%v' does not match pdu data length '%v'", length-1, pduLength)
+		err = NewModbusProtocolError("modbus: length in response '%v' does not match pdu data length '%v'", length-1, pduLength)
 		return
 	}
 	pdu = &ProtocolDataUnit{}
@@ -186,13 +186,13 @@ func (mb *tcpTransporter) Send(aduRequest []byte) (aduResponse []byte, err error
 	// Read length, ignore transaction & protocol id (4 bytes)
 	length := int(binary.BigEndian.Uint16(data[4:]))
 	if length <= 0 {
-		mb.flush(data[:])
+		_ = mb.flush(data[:])
 		err = fmt.Errorf("modbus: length in response header '%v' must not be zero", length)
 		return
 	}
 	if length > (tcpMaxLength - (tcpHeaderSize - 1)) {
-		mb.flush(data[:])
-		err = fmt.Errorf("modbus: length in response header '%v' must not greater than '%v'", length, tcpMaxLength-tcpHeaderSize+1)
+		_ = mb.flush(data[:])
+		err = NewModbusProtocolError("modbus: length in response header '%v' must not greater than '%v'", length, tcpMaxLength-tcpHeaderSize+1)
 		return
 	}
 	// Skip unit id
@@ -287,6 +287,6 @@ func (mb *tcpTransporter) closeIdle() {
 	idle := time.Now().Sub(mb.lastActivity)
 	if idle >= mb.IdleTimeout {
 		mb.logf("modbus: closing connection due to idle timeout: %v", idle)
-		mb.close()
+		_ = mb.close()
 	}
 }
